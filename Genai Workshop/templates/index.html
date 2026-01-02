@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ATS Resume & Job Matcher</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #4f46e5; --secondary: #ec4899; --bg-dark: #0f172a; --glass: rgba(255, 255, 255, 0.95); --success: #10b981; --danger: #ef4444; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Outfit', sans-serif; }
+        body {
+            background-color: var(--bg-dark);
+            background-image: radial-gradient(circle at 10% 20%, rgba(79, 70, 229, 0.2) 0%, transparent 40%), radial-gradient(circle at 90% 80%, rgba(236, 72, 153, 0.2) 0%, transparent 40%);
+            min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
+        }
+        .container { width: 100%; max-width: 1000px; background: var(--glass); backdrop-filter: blur(20px); border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); overflow: hidden; display: flex; flex-direction: column; }
+        header { padding: 1.5rem 2rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 1.4rem; font-weight: 700; background: linear-gradient(to right, var(--primary), var(--secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .view { flex: 1; padding: 2rem; display: flex; flex-direction: column; animation: fadeUp 0.5s ease; width: 100%; }
+        .hidden { display: none !important; }
+        
+        .upload-box { border: 2px dashed #94a3b8; border-radius: 16px; padding: 4rem; text-align: center; cursor: pointer; transition: all 0.3s; background: #f8fafc; width: 100%; max-width: 600px; margin: 0 auto; }
+        .upload-box.drag-active { border-color: var(--primary); background: #eef2ff; transform: scale(1.02); }
+
+        .score-row { display: flex; align-items: center; gap: 20px; background: #f8fafc; padding: 1.5rem; border-radius: 16px; margin-bottom: 1.5rem; }
+        .score-circle { width: 80px; height: 80px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; font-weight: 800; border: 4px solid #c7d2fe; }
+        
+        .panel { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; }
+        .tag-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .tag { background: #eef2ff; color: var(--primary); padding: 5px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 500; }
+        
+        .jd-textarea { width: 100%; height: 120px; border-radius: 12px; border: 1px solid #cbd5e1; padding: 1rem; margin: 15px 0; font-family: inherit; }
+        .btn { background: var(--primary); color: white; padding: 12px 30px; border-radius: 50px; border: none; font-weight: 600; cursor: pointer; transition: 0.3s; width: 100%; }
+
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .spinner { width: 50px; height: 50px; border: 5px solid #e2e8f0; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s infinite linear; align-self: center; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div class="logo">ATS Matcher</div>
+        <button onclick="location.reload()" style="background:none; border:none; cursor:pointer; color:#64748b;"><i class="fa-solid fa-sync"></i> Reset</button>
+    </header>
+
+    <div id="view-upload" class="view">
+        <h2 style="margin-bottom: 0.5rem; text-align: center;">Resume Analysis</h2>
+        <div class="upload-box" id="drop-zone">
+            <i class="fa-solid fa-cloud-arrow-up" style="font-size: 4rem; color: #94a3b8; margin-bottom: 1rem;"></i>
+            <h3>Drag & Drop Resume</h3>
+            <p style="color: #64748b; margin: 10px 0;">Supports PDF & DOCX</p>
+            <input type="file" id="file-input" hidden accept=".pdf,.docx">
+            <button class="btn" style="width:auto;" onclick="document.getElementById('file-input').click()">Browse Files</button>
+        </div>
+    </div>
+
+    <div id="view-loading" class="view hidden">
+        <div class="spinner"></div>
+        <h3 id="loading-text" style="text-align:center; margin-top:1.5rem;">AI is processing...</h3>
+    </div>
+
+    <div id="view-dashboard" class="view hidden" style="justify-content:flex-start; overflow-y:auto;">
+        <div class="score-row">
+            <div class="score-circle" id="ats-score">0</div>
+            <div>
+                <h3>General Resume Score</h3>
+                <p style="color: #64748b;">Baseline assessment based on content quality.</p>
+            </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem;">
+            <div class="panel">
+                <h4>Skills Identified</h4>
+                <div id="skills-tags" class="tag-group"></div>
+            </div>
+            <div class="panel">
+                <h4>Tools & Technologies</h4>
+                <div id="tools-tags" class="tag-group"></div>
+            </div>
+        </div>
+
+        <hr style="margin: 2rem 0; border: none; border-top: 2px dashed #e2e8f0;">
+
+        <h3>Job Description Matcher</h3>
+        <textarea id="jd-input" class="jd-textarea" placeholder="Paste the Job Description here..."></textarea>
+        <button class="btn" onclick="runMatch()">Compare Against JD</button>
+
+        <div id="view-match" class="hidden" style="margin-top: 2rem;">
+            <div class="score-row" style="background:#ecfdf5;">
+                <div class="score-circle" id="match-score">0%</div>
+                <div>
+                    <h3>ATS Application Status: <span id="apply-status">Checking...</span></h3>
+                    <p style="color: #64748b;">Alignment with the particular job requirements.</p>
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem;">
+                <div class="panel" style="border-left: 4px solid var(--success);">
+                    <h4 style="color: var(--success);">Matching Skills</h4>
+                    <div id="matching-skills" class="tag-group"></div>
+                </div>
+                <div class="panel" style="border-left: 4px solid var(--danger);">
+                    <h4 style="color: var(--danger);">Missing Skills</h4>
+                    <div id="missing-skills" class="tag-group"></div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h4>AI Recommendations</h4>
+                <div id="analysis-text" style="margin-top:10px; color: #475569; font-size:0.9rem; line-height: 1.6;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let rawText = "";
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+
+    // Drag & Drop Handling
+    ['dragenter', 'dragover'].forEach(e => dropZone.addEventListener(e, (ev) => { ev.preventDefault(); dropZone.classList.add('drag-active'); }));
+    ['dragleave', 'drop'].forEach(e => dropZone.addEventListener(e, (ev) => { ev.preventDefault(); dropZone.classList.remove('drag-active'); }));
+    dropZone.addEventListener('drop', (e) => { if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files[0]); });
+    fileInput.onchange = (e) => { if(e.target.files[0]) handleFiles(e.target.files[0]); };
+
+    function handleFiles(file) {
+        document.getElementById('view-upload').classList.add('hidden');
+        document.getElementById('view-loading').classList.remove('hidden');
+        const fd = new FormData(); fd.append('resume', file);
+        fetch('/analyze', { method: 'POST', body: fd })
+        .then(r => r.json()).then(data => {
+            if(data.error) throw new Error(data.error);
+            rawText = data.raw_text;
+            document.getElementById('view-loading').classList.add('hidden');
+            document.getElementById('view-dashboard').classList.remove('hidden');
+            document.getElementById('ats-score').innerText = data.analysis.ats_score;
+            
+            const fill = (id, list) => {
+                const el = document.getElementById(id); el.innerHTML = '';
+                (list || []).forEach(i => el.innerHTML += `<span class="tag">${i}</span>`);
+            };
+            fill('skills-tags', data.analysis.skills);
+            fill('tools-tags', data.analysis.tools_and_tech);
+        }).catch(err => { alert(err.message); location.reload(); });
+    }
+
+    function runMatch() {
+        const jd = document.getElementById('jd-input').value;
+        if(jd.length < 5) return alert("Please paste a valid Job Description.");
+        
+        document.getElementById('view-dashboard').classList.add('hidden');
+        document.getElementById('view-loading').classList.remove('hidden');
+        document.getElementById('loading-text').innerText = "Comparing with Job Description...";
+
+        fetch('/match', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ resume_text: rawText, jd_text: jd })
+        })
+        .then(r => r.json()).then(data => {
+            if(data.error) throw new Error(data.error);
+            document.getElementById('view-loading').classList.add('hidden');
+            document.getElementById('view-dashboard').classList.remove('hidden');
+            document.getElementById('view-match').classList.remove('hidden');
+
+            // Map match_percentage and can_apply from backend
+            document.getElementById('match-score').innerText = (data.match_percentage || 0) + "%";
+            document.getElementById('apply-status').innerText = data.can_apply || "Unknown";
+            
+            const fill = (id, list) => {
+                const el = document.getElementById(id); el.innerHTML = '';
+                (list || []).forEach(i => el.innerHTML += `<span class="tag">${i}</span>`);
+            };
+            fill('matching-skills', data.matching_skills);
+            fill('missing-skills', data.missing_skills);
+
+            document.getElementById('analysis-text').innerHTML = `
+                <b>How to Improve:</b><br>${(data.improvement_suggestions || []).join('<br>') || 'N/A'}
+            `;
+            document.getElementById('view-match').scrollIntoView({ behavior: 'smooth' });
+        }).catch(err => { 
+            alert(err.message); 
+            document.getElementById('view-loading').classList.add('hidden'); 
+            document.getElementById('view-dashboard').classList.remove('hidden'); 
+        });
+    }
+</script>
+</body>
+</html>
