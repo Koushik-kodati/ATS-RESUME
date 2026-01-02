@@ -85,4 +85,3 @@ Before running this project, ensure you have:
 3.  **Match with JD:** Paste a Job Description into the text area and click "Compare Against JD".
 4.  **Get Results:** Review the Match Score, Missing Skills, and specific tips on how to tailor your resume.
 
-## 📂 Project Structure
