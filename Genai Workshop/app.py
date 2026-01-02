@@ -10,7 +10,7 @@ app = Flask(__name__)
 
 # --- CONFIGURATION ---
 # ⚠️ IMPORTANT: Replace with your NEW API Key. The previous one is compromised.
-GOOGLE_API_KEY = "AIzaSyCk9JPpcxMQAj4T1WEbg5mYYRRrW9zuZYQ" 
+GOOGLE_API_KEY = "YOUR_API_KEY_HERE" 
 client = genai.Client(api_key=GOOGLE_API_KEY)
 
 def extract_text(file):
@@ -130,4 +130,5 @@ def match():
     return jsonify({"error": "AI failed to match Job Description"}), 500
 
 if __name__ == '__main__':
+
     app.run(debug=True)
